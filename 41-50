@@ -5,8 +5,68 @@
  * Descripción: Conversión de decimal a hexadecimal
  * Dificultad: intermedio
  *---------------------------------------------------------------*/
- 
+     .data
+msg_prompt:     .string "Ingrese un número decimal: "
+msg_result:     .string "El número en hexadecimal es: "
+formato_int:    .string "%d"
+formato_hex:    .string "%X\n"
+
+numero:         .word 0   // Variable para el número ingresado
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+    // Mostrar el mensaje de entrada
+    adr     x0, msg_prompt
+    bl      printf
+
+    // Leer el número decimal
+    adr     x0, formato_int
+    adr     x1, numero
+    bl      scanf
+
+    // Cargar el número decimal en w0
+    adr     x0, numero
+    ldr     w0, [x0]
+
+    // Mostrar el mensaje "El número en hexadecimal es:"
+    adr     x0, msg_result
+    bl      printf
+
+    // Mostrar el número en formato hexadecimal
+    adr     x0, formato_hex
+    bl      printf
+
+    // Terminar el programa
+    mov     w0, #0
+    ldp     x29, x30, [sp], 16
+    ret
+
 ---------------------------------------------------------------------Codigo en C# de Conversión de decimal a hexadecimal
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Leer el número decimal
+        Console.Write("Ingrese un número decimal: ");
+        int numeroDecimal = int.Parse(Console.ReadLine());
+
+        // Convertir a hexadecimal
+        string numeroHexadecimal = numeroDecimal.ToString("X");
+
+        // Mostrar el resultado
+        Console.WriteLine($"El número en hexadecimal es: {numeroHexadecimal}");
+    }
+}
+
+
                                                                        42.Conversión de hexadecimal a decimal
 /*---------------------------------------------------------------
  * Autor: Eric Said Mora Lopez
@@ -14,8 +74,86 @@
  * Descripción: Conversión de hexadecimal a decimal
  * Dificultad: intermedio
  *---------------------------------------------------------------*/
- 
+     .data
+msg_prompt:     .string "Ingrese un número hexadecimal: "
+msg_result:     .string "El número en decimal es: "
+formato_hex:    .string "%s"  // Usamos %s para leer la cadena hexadecimal
+numero:         .space 16   // Espacio para el número hexadecimal (hasta 16 caracteres)
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+    // Mostrar el mensaje de entrada
+    adr     x0, msg_prompt
+    bl      printf
+
+    // Leer la cadena hexadecimal
+    adr     x0, formato_hex
+    adr     x1, numero
+    bl      scanf
+
+    // Inicializar variables
+    mov     x2, #0          // x2 = acumulador para el valor decimal
+    adr     x3, numero      // Cargar la dirección de la cadena hexadecimal
+
+convertir_hex_a_decimal:
+    ldrb    w4, [x3], #1    // Cargar un byte (un carácter) de la cadena y mover el puntero
+    cmp     w4, #0          // Comprobar si es el fin de la cadena (carácter nulo)
+    beq     mostrar_resultado
+
+    // Convertir el carácter hexadecimal a su valor decimal
+    sub     w4, w4, #'0'    // Restar '0' para convertir a valor numérico
+    cmp     w4, #9          // Comprobar si el carácter es un número (0-9)
+    ble     es_numero
+    sub     w4, w4, #7      // Restar 7 para convertir letras A-F a su valor numérico
+    b       agregar_valor
+
+es_numero:
+    // Si es un número entre 0 y 9
+    b       agregar_valor
+
+agregar_valor:
+    // Multiplicar el acumulador por 16 y agregar el valor del dígito hexadecimal
+    mov     w5, x2          // Guardar el valor anterior de x2
+    lsl     x2, x2, #4      // Multiplicar por 16 (desplazar 4 bits a la izquierda)
+    add     x2, x2, w4      // Sumar el valor del dígito hexadecimal
+    b       convertir_hex_a_decimal
+
+mostrar_resultado:
+    // Mostrar el resultado decimal
+    adr     x0, msg_result
+    bl      printf
+    mov     x1, x2          // Mover el resultado a x1
+    bl      printf          // Usamos printf para mostrar el número decimal
+
+    // Terminar el programa
+    mov     w0, #0
+    ldp     x29, x30, [sp], 16
+    ret
+
 ---------------------------------------------------------------------Codigo en C# de Conversión de hexadecimal a decimal
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Leer el número hexadecimal
+        Console.Write("Ingrese un número hexadecimal: ");
+        string numeroHexadecimal = Console.ReadLine();
+
+        // Convertir a decimal
+        int numeroDecimal = Convert.ToInt32(numeroHexadecimal, 16);
+
+        // Mostrar el resultado
+        Console.WriteLine($"El número en decimal es: {numeroDecimal}");
+    }
+}
 
                                                                        43.Calculadora simple (Suma, Resta, Multiplicación, División)
 /*---------------------------------------------------------------
@@ -24,8 +162,198 @@
  * Descripción: Calculadora simple (Suma, Resta, Multiplicación, División)
  * Dificultad: intermedio
  *---------------------------------------------------------------*/
- 
+     .data
+msg_menu:        .string "\nCalculadora Simple"
+msg_suma:        .string "1. Sumar"
+msg_resta:       .string "2. Restar"
+msg_multiplicar: .string "3. Multiplicar"
+msg_dividir:     .string "4. Dividir"
+msg_salir:       .string "5. Salir"
+msg_opcion:      .string "Seleccione una opción: "
+msg_num1:        .string "Ingrese el primer número: "
+msg_num2:        .string "Ingrese el segundo número: "
+msg_resultado:   .string "El resultado es: %d\n"
+msg_error:       .string "Error: División por cero no permitida.\n"
+formato_int:     .string "%d"
+opcion:          .word 0
+numero1:         .word 0
+numero2:         .word 0
+resultado:       .word 0
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+menu_loop:
+    // Mostrar el menú
+    adr     x0, msg_menu
+    bl      printf
+    adr     x0, msg_suma
+    bl      printf
+    adr     x0, msg_resta
+    bl      printf
+    adr     x0, msg_multiplicar
+    bl      printf
+    adr     x0, msg_dividir
+    bl      printf
+    adr     x0, msg_salir
+    bl      printf
+
+    // Leer opción
+    adr     x0, msg_opcion
+    bl      printf
+    adr     x0, formato_int
+    adr     x1, opcion
+    bl      scanf
+
+    // Verificar salida
+    adr     x0, opcion
+    ldr     w0, [x0]
+    cmp     w0, #5
+    b.eq    fin_programa
+
+    // Leer los dos números
+    adr     x0, msg_num1
+    bl      printf
+    adr     x0, formato_int
+    adr     x1, numero1
+    bl      scanf
+
+    adr     x0, msg_num2
+    bl      printf
+    adr     x0, formato_int
+    adr     x1, numero2
+    bl      scanf
+
+    // Cargar números en registros
+    adr     x0, numero1
+    ldr     w1, [x0]
+    adr     x0, numero2
+    ldr     w2, [x0]
+
+    // Verificar opción
+    adr     x0, opcion
+    ldr     w0, [x0]
+    cmp     w0, #1
+    b.eq    suma
+    cmp     w0, #2
+    b.eq    resta
+    cmp     w0, #3
+    b.eq    multiplicar
+    cmp     w0, #4
+    b.eq    dividir
+    b       menu_loop
+
+suma:
+    add     w3, w1, w2         // w3 = num1 + num2
+    adr     x0, msg_resultado
+    bl      printf
+    b       menu_loop
+
+resta:
+    sub     w3, w1, w2         // w3 = num1 - num2
+    adr     x0, msg_resultado
+    bl      printf
+    b       menu_loop
+
+multiplicar:
+    mul     w3, w1, w2         // w3 = num1 * num2
+    adr     x0, msg_resultado
+    bl      printf
+    b       menu_loop
+
+dividir:
+    cmp     w2, #0             // Verificar si el divisor es 0
+    b.eq    error_division
+    sdiv    w3, w1, w2         // w3 = num1 / num2
+    adr     x0, msg_resultado
+    bl      printf
+    b       menu_loop
+
+error_division:
+    adr     x0, msg_error
+    bl      printf
+    b       menu_loop
+
+fin_programa:
+    mov     w0, #0
+    ldp     x29, x30, [sp], 16
+    ret
+
 ---------------------------------------------------------------------Codigo en C# de Calculadora simple (Suma, Resta, Multiplicación, División)
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        int opcion;
+        double num1, num2, resultado;
+
+        do
+        {
+            // Mostrar el menú de operaciones
+            Console.WriteLine("\nCalculadora Simple");
+            Console.WriteLine("1. Sumar");
+            Console.WriteLine("2. Restar");
+            Console.WriteLine("3. Multiplicar");
+            Console.WriteLine("4. Dividir");
+            Console.WriteLine("5. Salir");
+            Console.Write("Seleccione una opción: ");
+            opcion = int.Parse(Console.ReadLine());
+
+            if (opcion == 5)
+            {
+                break;  // Salir del programa
+            }
+
+            // Leer los dos números
+            Console.Write("Ingrese el primer número: ");
+            num1 = double.Parse(Console.ReadLine());
+
+            Console.Write("Ingrese el segundo número: ");
+            num2 = double.Parse(Console.ReadLine());
+
+            // Realizar la operación seleccionada
+            switch (opcion)
+            {
+                case 1:
+                    resultado = num1 + num2;
+                    Console.WriteLine($"El resultado de la suma es: {resultado}");
+                    break;
+                case 2:
+                    resultado = num1 - num2;
+                    Console.WriteLine($"El resultado de la resta es: {resultado}");
+                    break;
+                case 3:
+                    resultado = num1 * num2;
+                    Console.WriteLine($"El resultado de la multiplicación es: {resultado}");
+                    break;
+                case 4:
+                    if (num2 != 0)
+                    {
+                        resultado = num1 / num2;
+                        Console.WriteLine($"El resultado de la división es: {resultado}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: División por cero no permitida.");
+                    }
+                    break;
+                default:
+                    Console.WriteLine("Opción no válida.");
+                    break;
+            }
+        }
+        while (opcion != 5);
+
+        Console.WriteLine("¡Gracias por usar la calculadora!");
+    }
+}
 
                                                                        44.Generación de números aleatorios (con semilla)
 /*---------------------------------------------------------------
@@ -34,8 +362,79 @@
  * Descripción: Generación de números aleatorios (con semilla)
  * Dificultad: Dificil
  *---------------------------------------------------------------*/
- 
+     .data
+msg_prompt:   .string "Ingrese una semilla para los números aleatorios: "
+msg_resultado: .string "Número aleatorio generado: %d\n"
+formato_int:  .string "%d"
+
+semilla:      .word 0
+a:            .word 1664525     // Constante 'a' para el algoritmo de congruencia lineal
+c:            .word 1013904223  // Constante 'c' para el algoritmo
+m:            .word 4294967296  // Constante 'm' (2^32)
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+    // Leer semilla
+    adr     x0, msg_prompt
+    bl      printf
+    adr     x0, formato_int
+    adr     x1, semilla
+    bl      scanf
+
+    // Cargar la semilla
+    adr     x0, semilla
+    ldr     w0, [x0]      // Cargar la semilla en w0
+
+    // Algoritmo de congruencia lineal para generar números aleatorios
+    adr     x1, a         // Cargar constante 'a' en x1
+    adr     x2, c         // Cargar constante 'c' en x2
+    adr     x3, m         // Cargar constante 'm' en x3
+
+generar_aleatorio:
+    mul     w4, w0, w1    // w4 = semilla * a
+    add     w4, w4, w2    // w4 = w4 + c
+    udiv    w4, w4, w3    // w4 = w4 / m (esto da el resultado mod m)
+    str     w4, [x0]      // Guardar el nuevo valor en la semilla
+
+    // Mostrar el número aleatorio generado
+    adr     x0, msg_resultado
+    bl      printf
+    adr     x0, formato_int
+    adr     x1, semilla
+    bl      printf
+
+    // Repetir generación de números aleatorios
+    b       generar_aleatorio
+
 ---------------------------------------------------------------------Codigo en C# de Generación de números aleatorios (con semilla)
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Leer la semilla
+        Console.Write("Ingrese una semilla para los números aleatorios: ");
+        int semilla = int.Parse(Console.ReadLine());
+
+        // Crear un generador de números aleatorios con la semilla proporcionada
+        Random rand = new Random(semilla);
+
+        // Generar y mostrar 5 números aleatorios
+        Console.WriteLine("\n5 Números aleatorios generados:");
+        for (int i = 0; i < 5; i++)
+        {
+            int numeroAleatorio = rand.Next(); // Genera un número aleatorio
+            Console.WriteLine(numeroAleatorio);
+        }
+    }
+}
 
                                                                        45.Verificar si un número es Armstrong
 /*---------------------------------------------------------------
@@ -44,8 +443,130 @@
  * Descripción: Verificar si un número es Armstrong
  * Dificultad: intermedio
  *---------------------------------------------------------------*/
- 
+     .data
+msg_prompt:       .string "Ingrese un número para verificar si es un número Armstrong: "
+msg_resultado:    .string "%d es un número Armstrong.\n"
+msg_no_armstrong: .string "%d no es un número Armstrong.\n"
+formato_int:      .string "%d"
+
+numero:           .word 0
+cantidad_digitos: .word 0
+suma:             .word 0
+digito:           .word 0
+potencia:         .word 0
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+    // Solicitar al usuario el número
+    adr     x0, msg_prompt
+    bl      printf
+    adr     x0, formato_int
+    adr     x1, numero
+    bl      scanf
+
+    // Cargar el número
+    adr     x0, numero
+    ldr     w0, [x0]         // Cargar el número en w0
+
+    // Calcular la cantidad de dígitos
+    mov     w1, w0
+    mov     w2, #0           // Inicializar cantidad de dígitos a 0
+
+contar_digitos:
+    cmp     w1, #0
+    beq     continuar         // Si el número es 0, saltar al siguiente paso
+    udiv    w1, w1, #10      // Dividir el número entre 10
+    add     w2, w2, #1       // Incrementar el contador de dígitos
+    b       contar_digitos
+
+continuar:
+    adr     x0, cantidad_digitos
+    str     w2, [x0]         // Guardar la cantidad de dígitos
+
+    // Inicializar la suma a 0
+    mov     w3, #0           // suma = 0
+    adr     x0, numero
+    ldr     w0, [x0]         // Cargar el número original
+
+calcular_suma:
+    cmp     w0, #0           // Si el número es 0, finalizar
+    beq     verificar_resultado
+
+    // Obtener el dígito
+    mov     w4, w0
+    udiv    w4, w4, #10      // Dividir por 10 para eliminar el dígito de la derecha
+    mul     w5, w4, w4       // w5 = digito^cantidad_digitos (elevar al cuadrado en este caso)
+    add     w3, w3, w5       // Sumar el resultado al total
+
+    // Dividir el número original por 10 para obtener el siguiente dígito
+    udiv    w0, w0, #10
+    b       calcular_suma
+
+verificar_resultado:
+    adr     x0, cantidad_digitos
+    ldr     w2, [x0]
+    cmp     w2, w3           // Verificar si la suma es igual al número original
+    b.eq    mostrar_armstrong
+    adr     x0, msg_no_armstrong
+    bl      printf
+    b       fin_programa
+
+mostrar_armstrong:
+    adr     x0, msg_resultado
+    bl      printf
+
+fin_programa:
+    mov     w0, #0
+    ldp     x29, x30, [sp], 16
+    ret
+
 ---------------------------------------------------------------------Codigo en C# de Verificar si un número es Armstrong
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Solicitar al usuario un número
+        Console.Write("Ingrese un número para verificar si es un número Armstrong: ");
+        int numero = int.Parse(Console.ReadLine());
+
+        // Verificar si el número es Armstrong
+        if (EsNumeroArmstrong(numero))
+        {
+            Console.WriteLine($"{numero} es un número Armstrong.");
+        }
+        else
+        {
+            Console.WriteLine($"{numero} no es un número Armstrong.");
+        }
+    }
+
+    static bool EsNumeroArmstrong(int numero)
+    {
+        // Convertir el número a cadena para contar sus dígitos
+        int cantidadDeDigitos = numero.ToString().Length;
+        int suma = 0;
+        int numeroOriginal = numero;
+
+        // Sumar los dígitos elevados a la potencia de la cantidad de dígitos
+        while (numero > 0)
+        {
+            int digito = numero % 10;
+            suma += (int)Math.Pow(digito, cantidadDeDigitos);
+            numero /= 10;
+        }
+
+        // Verificar si la suma de los dígitos elevados es igual al número original
+        return suma == numeroOriginal;
+    }
+}
 
                                                                        46.Encontrar prefijo común más largo en cadenas
 /*---------------------------------------------------------------
@@ -54,10 +575,174 @@
  * Descripción: Encontrar prefijo común más largo en cadenas
  * Dificultad: intermedio
  *---------------------------------------------------------------*/
+   .data
+msg_prompt1:      .string "Ingrese la primera cadena: "
+msg_prompt2:      .string "Ingrese la segunda cadena: "
+msg_prompt3:      .string "Ingrese la tercera cadena: "
+msg_resultado:    .string "El prefijo común más largo es: %s\n"
+msg_no_prefijo:   .string "No hay prefijo común.\n"
+formato:          .string "%s"
 
+cadena1:          .space 100
+cadena2:          .space 100
+cadena3:          .space 100
+prefijo_comun:    .space 100
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+    // Pedir la primera cadena
+    adr     x0, msg_prompt1
+    bl      printf
+    adr     x0, formato
+    adr     x1, cadena1
+    bl      scanf
+
+    // Pedir la segunda cadena
+    adr     x0, msg_prompt2
+    bl      printf
+    adr     x0, formato
+    adr     x1, cadena2
+    bl      scanf
+
+    // Pedir la tercera cadena
+    adr     x0, msg_prompt3
+    bl      printf
+    adr     x0, formato
+    adr     x1, cadena3
+    bl      scanf
+
+    // Llamar a la función para encontrar el prefijo común
+    adr     x0, cadena1
+    adr     x1, cadena2
+    adr     x2, cadena3
+    adr     x3, prefijo_comun
+    bl      obtener_prefijo_comun
+
+    // Imprimir el resultado
+    adr     x0, msg_resultado
+    bl      printf
+    adr     x0, prefijo_comun
+    bl      printf
+
+    // Fin del programa
+    mov     w0, #0
+    ldp     x29, x30, [sp], 16
+    ret
+
+// Función para obtener el prefijo común
+obtener_prefijo_comun:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+    // Inicializar las variables
+    mov     x4, #0           // Índice para el prefijo común
+    mov     x5, #0           // Índice para las cadenas
+
+comprobar_caracteres:
+    // Cargar caracteres de las tres cadenas
+    ldrb    w6, [x0, x5]     // Cargar el siguiente carácter de cadena1
+    ldrb    w7, [x1, x5]     // Cargar el siguiente carácter de cadena2
+    ldrb    w8, [x2, x5]     // Cargar el siguiente carácter de cadena3
+
+    // Comparar los tres caracteres
+    cmp     w6, w7
+    b.ne    no_prefijo
+    cmp     w7, w8
+    b.ne    no_prefijo
+
+    // Si son iguales, almacenar el carácter en el prefijo
+    strb    w6, [x3, x4]     // Almacenar el carácter en prefijo_comun
+
+    // Incrementar los índices
+    add     x4, x4, #1
+    add     x5, x5, #1
+
+    // Continuar mientras no se haya llegado al final de las cadenas
+    cmp     w6, #0
+    beq     fin_prefijo
+
+    b       comprobar_caracteres
+
+no_prefijo:
+    // Si no hay prefijo común
+    adr     x0, msg_no_prefijo
+    bl      printf
+    mov     w0, #0
+    ldp     x29, x30, [sp], 16
+    ret
+
+fin_prefijo:
+    // Terminar el prefijo común con el carácter nulo
+    mov     w9, #0
+    strb    w9, [x3, x4]     // Terminar la cadena con nulo
+    ldp     x29, x30, [sp], 16
+    ret
  
 ---------------------------------------------------------------------Codigo en C# de Encontrar prefijo común más largo en cadenas
+using System;
 
+class Program
+{
+    static void Main()
+    {
+        // Solicitar al usuario las cadenas
+        Console.Write("Ingrese la primera cadena: ");
+        string cadena1 = Console.ReadLine();
+
+        Console.Write("Ingrese la segunda cadena: ");
+        string cadena2 = Console.ReadLine();
+
+        Console.Write("Ingrese la tercera cadena: ");
+        string cadena3 = Console.ReadLine();
+
+        // Encontrar el prefijo común más largo
+        string prefijoComún = ObtenerPrefijoComún(cadena1, cadena2, cadena3);
+
+        // Mostrar el resultado
+        if (string.IsNullOrEmpty(prefijoComún))
+        {
+            Console.WriteLine("No hay prefijo común.");
+        }
+        else
+        {
+            Console.WriteLine($"El prefijo común más largo es: {prefijoComún}");
+        }
+    }
+
+    static string ObtenerPrefijoComún(params string[] cadenas)
+    {
+        if (cadenas == null || cadenas.Length == 0)
+            return string.Empty;
+
+        // Empezamos con la primera cadena como prefijo común
+        string prefijoComún = cadenas[0];
+
+        // Comparamos el prefijo común con cada cadena
+        foreach (var cadena in cadenas)
+        {
+            int i = 0;
+            // Comparamos hasta el mínimo tamaño entre las dos cadenas
+            while (i < prefijoComún.Length && i < cadena.Length && prefijoComún[i] == cadena[i])
+            {
+                i++;
+            }
+            // Actualizamos el prefijo común
+            prefijoComún = prefijoComún.Substring(0, i);
+
+            // Si en algún punto no hay prefijo común, retornamos una cadena vacía
+            if (prefijoComún == string.Empty)
+                return string.Empty;
+        }
+
+        return prefijoComún;
+    }
+}
                                                                        47.	Detección de desbordamiento en suma
 /*---------------------------------------------------------------
  * Autor: Eric Said Mora Lopez
@@ -65,8 +750,64 @@
  * Descripción: 	Detección de desbordamiento en suma
  * Dificultad: Dificil
  *---------------------------------------------------------------*/
- 
+  .data
+msg_ok:     .string "No hubo desbordamiento.\n"
+msg_over:   .string "¡Desbordamiento detectado!\n"
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!   // Guardar el marco de pila
+    mov     x29, sp
+
+    // Cargar valores en registros
+    ldr     w0, =0x7FFFFFFF        // Máximo entero positivo (int32)
+    ldr     w1, =1                 // Valor a sumar
+
+    // Realizar la suma con verificación de desbordamiento
+    adds    w2, w0, w1             // w2 = w0 + w1, actualiza los flags NZCV
+    bvs     overflow_detected      // Saltar si ocurre desbordamiento
+
+    // Sin desbordamiento
+    adr     x0, msg_ok
+    bl      printf
+    b       end_program
+
+overflow_detected:
+    // Mensaje de desbordamiento
+    adr     x0, msg_over
+    bl      printf
+
+end_program:
+    ldp     x29, x30, [sp], 16     // Restaurar el marco de pila
+    ret
+
 ---------------------------------------------------------------------Codigo en C# de	Detección de desbordamiento en suma
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        try
+        {
+            int a = int.MaxValue;  // Máximo entero positivo
+            int b = 1;             // Valor a sumar
+
+            // Realizar la suma con verificación de desbordamiento
+            int c = checked(a + b);
+
+            Console.WriteLine("No hubo desbordamiento.");
+        }
+        catch (OverflowException)
+        {
+            Console.WriteLine("¡Desbordamiento detectado!");
+        }
+    }
+}
+
 
                                                                        48.Medir el tiempo de ejecución de una función	
 /*---------------------------------------------------------------
@@ -75,8 +816,85 @@
  * Descripción: Medir el tiempo de ejecución de una función	
  * Dificultad: Dificil
  *---------------------------------------------------------------*/
- 
+     .data
+msg:    .string "El tiempo de ejecución de la función es: %d ciclos.\n"
+formato: .string "%d"
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!
+    mov     x29, sp
+
+    // Habilitar el contador PMU (Performance Monitoring Unit)
+    mrs     x0, PMCR_EL0            // Leer el registro PMCR_EL0
+    orr     x0, x0, #1              // Habilitar el contador
+    msr     PMCR_EL0, x0            // Escribir de nuevo el valor en PMCR_EL0
+
+    // Iniciar el contador PMCCNTR_EL0 (contando ciclos)
+    mov     x0, #0
+    msr     PMCCNTR_EL0, x0         // Establecer el contador a 0
+
+    // Llamar a la función cuya duración queremos medir
+    bl      funcion_larga
+
+    // Leer el contador de ciclos de CPU
+    mrs     x0, PMCCNTR_EL0         // Leer el valor del contador de ciclos
+
+    // Mostrar el tiempo transcurrido en ciclos
+    adr     x1, msg
+    bl      printf
+    mov     x2, x0
+    bl      printf
+
+    ldp     x29, x30, [sp], 16
+    ret
+
+// Función que simula una tarea larga
+funcion_larga:
+    // Simular una operación costosa (usando un bucle)
+    mov     x0, #1000000
+bucle:
+    subs    x0, x0, #1
+    bne     bucle
+    ret
+
 ---------------------------------------------------------------------Codigo en C# de Medir el tiempo de ejecución de una función	
+using System;
+using System.Diagnostics;
+
+class Program
+{
+    static void Main()
+    {
+        // Crear una nueva instancia de Stopwatch
+        Stopwatch stopwatch = new Stopwatch();
+
+        // Iniciar el cronómetro
+        stopwatch.Start();
+
+        // Llamar a la función cuya duración queremos medir
+        FunciónLarga();
+
+        // Detener el cronómetro
+        stopwatch.Stop();
+
+        // Obtener el tiempo transcurrido
+        TimeSpan tiempoTranscurrido = stopwatch.Elapsed;
+
+        // Mostrar el tiempo en segundos, milisegundos, etc.
+        Console.WriteLine($"El tiempo de ejecución de la función fue: {tiempoTranscurrido.TotalMilliseconds} ms");
+    }
+
+    // Función que simula una tarea larga
+    static void FunciónLarga()
+    {
+        // Simular un retraso
+        System.Threading.Thread.Sleep(2000);  // 2 segundos de espera
+    }
+}
 
                                                                        49.Leer entrada desde el teclado	
 /*---------------------------------------------------------------
@@ -85,8 +903,62 @@
  * Descripción: Leer entrada desde el teclado	
  * Dificultad: Facil
  *---------------------------------------------------------------*/
- 
+   .data
+prompt:     .string "Por favor, ingrese un número entero: "
+formato:    .string "%d"
+numero:     .word 0                  // Espacio para almacenar el número ingresado
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!    // Guardar el marco de pila
+    mov     x29, sp
+
+    // Mostrar el mensaje de entrada
+    adr     x0, prompt
+    bl      printf
+
+    // Leer el número ingresado
+    adr     x0, formato             // Dirección del formato "%d"
+    adr     x1, numero              // Dirección donde se guardará el número
+    bl      scanf
+
+    // Mostrar el número ingresado
+    ldr     w1, [x1]                // Cargar el número leído
+    adr     x0, prompt              // Reutilizar mensaje como formato
+    bl      printf
+
+    // Finalizar
+    ldp     x29, x30, [sp], 16      // Restaurar el marco de pila
+    ret
 ---------------------------------------------------------------------Codigo en C# de Leer entrada desde el teclado	
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        // Mostrar el mensaje al usuario
+        Console.Write("Por favor, ingrese un número entero: ");
+
+        // Leer la entrada como texto
+        string entrada = Console.ReadLine();
+
+        // Intentar convertir la entrada a un número entero
+        if (int.TryParse(entrada, out int numero))
+        {
+            // Mostrar el número ingresado
+            Console.WriteLine($"El número ingresado es: {numero}");
+        }
+        else
+        {
+            // Mostrar un mensaje de error si la conversión falla
+            Console.WriteLine("Entrada inválida. Por favor, ingrese un número entero.");
+        }
+    }
+}
 
                                                                        50.Escribir en un archivo	
 /*---------------------------------------------------------------
@@ -95,5 +967,69 @@
  * Descripción: Escribir en un archivo	
  * Dificultad: intermedio
  *---------------------------------------------------------------*/
- 
+ .data
+filename:   .string "salida.txt"        // Nombre del archivo
+mensaje:    .string "¡Hola, archivo desde ensamblador ARM64!\n"
+len_mensaje: .word 41                  // Longitud del mensaje (caracteres)
+
+    .text
+    .global main
+    .align 2
+
+main:
+    stp     x29, x30, [sp, -16]!       // Guardar el marco de pila
+    mov     x29, sp
+
+    // Abrir el archivo (syscall: open)
+    mov     x8, 56                     // Número de syscall para "openat"
+    mov     x0, -100                   // openat dirfd = AT_FDCWD (-100)
+    adr     x1, filename               // Dirección del nombre del archivo
+    mov     x2, 577                    // Flags: O_CREAT | O_WRONLY | O_TRUNC (octal 0o1001)
+    mov     x3, 0644                   // Permisos: rw-r--r-- (octal)
+    svc     0                          // Hacer syscall
+    mov     x9, x0                     // Guardar el descriptor de archivo (fd)
+
+    // Escribir en el archivo (syscall: write)
+    mov     x8, 64                     // Número de syscall para "write"
+    mov     x0, x9                     // fd del archivo
+    adr     x1, mensaje                // Dirección del mensaje
+    ldr     x2, =len_mensaje           // Longitud del mensaje
+    svc     0                          // Hacer syscall
+
+    // Cerrar el archivo (syscall: close)
+    mov     x8, 57                     // Número de syscall para "close"
+    mov     x0, x9                     // fd del archivo
+    svc     0                          // Hacer syscall
+
+    // Finalizar
+    ldp     x29, x30, [sp], 16         // Restaurar el marco de pila
+    ret
 ---------------------------------------------------------------------Codigo en C# de Escribir en un archivo	
+using System;
+using System.IO;
+
+class Program
+{
+    static void Main()
+    {
+        // Nombre del archivo
+        string nombreArchivo = "salida.txt";
+
+        // Mensaje a escribir
+        string mensaje = "¡Hola, archivo desde C#!";
+
+        // Escribir en el archivo
+        try
+        {
+            using (StreamWriter escritor = new StreamWriter(nombreArchivo))
+            {
+                escritor.WriteLine(mensaje);
+            }
+            Console.WriteLine($"Mensaje escrito en el archivo: {nombreArchivo}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ocurrió un error al escribir en el archivo: {ex.Message}");
+        }
+    }
+}
